@@ -1,8 +1,10 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_keyboard_visibility/flutter_keyboard_visibility.dart';
 import 'package:get/get.dart';
 import 'package:user_ecom/screens/auth-ui/sign_in_screen.dart';
 
+import '../../controllers/sign_up_controller.dart';
 import '../../utils/constant.dart';
 
 class SignUpScreen extends StatefulWidget {
@@ -13,11 +15,19 @@ class SignUpScreen extends StatefulWidget {
 }
 
 class _SignUpScreenState extends State<SignUpScreen> {
+  final SignUpController signupController = Get.put(SignUpController());
+  TextEditingController userName = TextEditingController();
+  TextEditingController userEmail = TextEditingController();
+  TextEditingController userPhone = TextEditingController();
+  TextEditingController userCity = TextEditingController();
+  TextEditingController userPassword = TextEditingController();
+
   @override
   Widget build(BuildContext context) {
     return KeyboardVisibilityBuilder(builder: (context, isKeyboardVisible) {
       return Scaffold(
         appBar: AppBar(
+          iconTheme: Theme.of(context).primaryIconTheme,
           backgroundColor: AppConstant.appScendoryColor,
           centerTitle: true,
           title: const Text(
@@ -36,7 +46,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   'Welcome to E-Commerce',
                   style: TextStyle(
                       color: AppConstant.appScendoryColor,
-                      fontWeight: FontWeight.bold, fontSize: 17),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 17),
                 ),
               ),
               SizedBox(height: Get.height / 20),
@@ -46,6 +57,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 child: Padding(
                   padding: const EdgeInsets.all(8.0),
                   child: TextFormField(
+                    controller: userEmail,
                     cursorColor: AppConstant.appScendoryColor,
                     keyboardType: TextInputType.emailAddress,
                     decoration: InputDecoration(
@@ -63,6 +75,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 child: Padding(
                   padding: const EdgeInsets.all(8.0),
                   child: TextFormField(
+                    controller: userName,
                     cursorColor: AppConstant.appScendoryColor,
                     keyboardType: TextInputType.name,
                     decoration: InputDecoration(
@@ -80,6 +93,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 child: Padding(
                   padding: const EdgeInsets.all(8.0),
                   child: TextFormField(
+                    controller: userPhone,
                     cursorColor: AppConstant.appScendoryColor,
                     keyboardType: TextInputType.phone,
                     decoration: InputDecoration(
@@ -97,6 +111,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 child: Padding(
                   padding: const EdgeInsets.all(8.0),
                   child: TextFormField(
+                    controller: userCity,
                     cursorColor: AppConstant.appScendoryColor,
                     keyboardType: TextInputType.name,
                     decoration: InputDecoration(
@@ -112,19 +127,29 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 margin: const EdgeInsets.symmetric(horizontal: 5),
                 width: Get.width,
                 child: Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: TextFormField(
-                    cursorColor: AppConstant.appScendoryColor,
-                    keyboardType: TextInputType.emailAddress,
-                    decoration: InputDecoration(
-                        hintText: 'Password',
-                        prefixIcon: const Icon(Icons.password),
-                        suffixIcon: const Icon(Icons.visibility_off),
-                        contentPadding: const EdgeInsets.only(top: 2, left: 8),
-                        border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10))),
-                  ),
-                ),
+                    padding: const EdgeInsets.all(8.0),
+                    child: Obx(
+                      () => TextFormField(
+                        controller: userPassword,
+                        cursorColor: AppConstant.appScendoryColor,
+                        keyboardType: TextInputType.emailAddress,
+                        obscureText: signupController.isPasswordVisible.value,
+                        decoration: InputDecoration(
+                            hintText: 'Password',
+                            prefixIcon: const Icon(Icons.password),
+                            suffixIcon: GestureDetector(
+                                onTap: () {
+                                  signupController.isPasswordVisible.toggle();
+                                },
+                                child: signupController.isPasswordVisible.value
+                                    ? const Icon(Icons.visibility)
+                                    : const Icon(Icons.visibility_off)),
+                            contentPadding:
+                                const EdgeInsets.only(top: 2, left: 8),
+                            border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10))),
+                      ),
+                    )),
               ),
               SizedBox(height: Get.height / 20),
               Material(
@@ -135,7 +160,42 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       color: AppConstant.appScendoryColor,
                       borderRadius: BorderRadius.circular(20)),
                   child: TextButton(
-                    onPressed: () {},
+                    onPressed: () async {
+                      String name = userName.text.trim();
+                      String email = userEmail.text.trim();
+                      String phone = userPhone.text.trim();
+                      String city = userCity.text.trim();
+                      String password = userPassword.text.trim();
+                      String userDeviceToken = '';
+
+                      if (name.isEmpty ||
+                          email.isEmpty ||
+                          phone.isEmpty ||
+                          city.isEmpty ||
+                          password.isEmpty) {
+                        Get.snackbar('Error', 'Please Enter all Details',
+                            snackPosition: SnackPosition.BOTTOM,
+                            backgroundColor: AppConstant.appScendoryColor,
+                            colorText: AppConstant.appTextColor);
+                      } else {
+                        UserCredential? userCredential =
+                           await signupController.signUpMethod(
+                                name,
+                                email,
+                                phone,
+                                city,
+                                password,
+                                userDeviceToken);
+                        if(userCredential != null){
+                          Get.snackbar('Verification email Sent', 'Please Check your email',
+                              snackPosition: SnackPosition.BOTTOM,
+                              backgroundColor: AppConstant.appScendoryColor,
+                              colorText: AppConstant.appTextColor);
+                          FirebaseAuth.instance.signOut();
+                          Get.offAll(()=> const SignInScreen());
+                        }
+                      }
+                    },
                     child: const Text(
                       'Sign Up',
                       style: TextStyle(color: Colors.white),
@@ -152,7 +212,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     style: TextStyle(color: AppConstant.appScendoryColor),
                   ),
                   GestureDetector(
-                    onTap: ()=> Get.offAll(() => const SignInScreen()),
+                    onTap: () => Get.offAll(() => const SignInScreen()),
                     child: const Text(
                       "Sign In",
                       style: TextStyle(
